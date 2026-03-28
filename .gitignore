@@ -1,0 +1,6 @@
+ios/build/
+ios/*.xcodeproj
+ios/ListeningFirst/Resources/client.zip
+ios/ListeningFirst/Info.plist
+.DS_Store
+.env
