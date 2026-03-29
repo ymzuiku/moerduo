@@ -4,14 +4,14 @@ import AppShell
 @main
 struct ListeningFirstApp: App {
     init() {
-        let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-        try? FileManager.default.removeItem(at: cacheDir.appendingPathComponent("appshell_client"))
+        // Force update server URL in case it was cached from a previous config
+        UserDefaults.standard.set("http://192.168.1.13:20300", forKey: "appshell_server_url")
     }
 
     var body: some Scene {
         WindowGroup {
             AppShellView(config: .init(
-                serverURL: "http://192.168.1.100:20100",
+                serverURL: "http://192.168.1.13:20300",
                 bundledZip: Bundle.main.url(forResource: "client", withExtension: "zip"),
                 adapters: [],
                 devMode: true

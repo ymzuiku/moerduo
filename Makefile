@@ -1,4 +1,4 @@
-.PHONY: ios ios-gen zip
+.PHONY: ios ios-gen zip image voice test serve prepare-books
 
 BUNDLE_ID := com.ymzuiku.ListeningFirst
 IOS_DIR   := ios
@@ -26,3 +26,18 @@ ios: zip
 
 ios-gen:
 	@cd ios && xcodegen generate
+
+image:
+	@go run ./cmd/image $(PROMPT)
+
+voice:
+	@go run ./cmd/voice $(TEXT)
+
+serve:
+	@go run ./cmd/server
+
+prepare-books:
+	@go run ./cmd/prepare-books
+
+test:
+	@go test -v ./...
