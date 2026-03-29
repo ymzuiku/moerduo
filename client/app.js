@@ -5,18 +5,22 @@
   var API = location.origin;
 
   var state = {
-    view: "login", // login | list | player
+    view: "login",      // login | list | player | my-books | edit-book | public-books
+    listTab: "library", // library | my-books | public
     token: null,
     user: null,
-    books: [],
-    currentBook: null,
+    books: [],          // system books
+    myBooks: [],        // user-created books
+    publicBooks: [],    // community public books
+    currentBook: null,  // { id, title, cover, paragraphs[], isUserBook }
     sentenceIndex: 0,
     playing: false,
     showText: true,
     showTranslation: true,
     currentAudio: null,
-    phraseTranslations: [], // per-phrase translations for current paragraph
-    wordPopup: null, // { word, translation, x, y }
+    phraseTranslations: [],
+    wordPopup: null,    // { word, translation, x, y }
+    editBook: null,     // book being created/edited
   };
 
   // ---- Storage ----
@@ -87,8 +91,34 @@
     });
   }
 
+  function fetchMyBooks() {
+    return apiJSON("GET", "/api/user-books").then(function (books) {
+      state.myBooks = books || [];
+    });
+  }
+
+  function fetchPublicBooks() {
+    return apiJSON("GET", "/api/public-books").then(function (books) {
+      state.publicBooks = books || [];
+    });
+  }
+
   function fetchBook(id) {
     return apiJSON("GET", "/api/books/" + id);
+  }
+
+  function fetchUserBook(id) {
+    return apiJSON("GET", "/api/user-books/" + id).then(function (b) {
+      if (!b) return null;
+      b.paragraphs = parseParagraphs(b.paragraphs);
+      b.isUserBook = true;
+      return b;
+    });
+  }
+
+  function parseParagraphs(val) {
+    if (Array.isArray(val)) return val;
+    try { return JSON.parse(val) || []; } catch (e) { return []; }
   }
 
   function fetchMe() {
@@ -282,7 +312,24 @@
   function render() {
     if (state.view === "login") renderLogin();
     else if (state.view === "list") renderBookList();
+    else if (state.view === "edit-book") renderEditBook();
     else renderPlayer();
+  }
+
+  function renderUserBar(showBack) {
+    var html = '<div class="user-bar">';
+    if (showBack) {
+      html += '<button class="back-btn user-bar-back" id="back-btn">返回</button>';
+    } else if (state.user) {
+      html += '<span class="user-name">' + escapeHtml(state.user.name || state.user.email || "用户") + '</span>';
+    }
+    if (state.user) {
+      var coins = state.user.balance_coins || 0;
+      var coinClass = coins < 20 ? "user-balance low" : "user-balance";
+      html += '<span class="' + coinClass + '" id="balance-btn">' + coins + ' 阅读币</span>';
+    }
+    html += '</div>';
+    return html;
   }
 
   function renderLogin() {
@@ -341,43 +388,239 @@
   }
 
   function renderBookList() {
+    var tab = state.listTab;
     var html = '<div class="view">';
-    // User bar
-    if (state.user) {
-      html += '<div class="user-bar">';
-      html += '<span class="user-name">' + escapeHtml(state.user.name || state.user.email || "用户") + '</span>';
-      html += '<span class="user-balance">' + (state.user.balance_coins || 0) + ' 阅读币</span>';
+    html += renderUserBar(false);
+
+    // Tabs
+    html += '<div class="tabs">';
+    html += '<button class="tab-btn' + (tab === "library" ? " active" : "") + '" data-tab="library">精选</button>';
+    html += '<button class="tab-btn' + (tab === "my-books" ? " active" : "") + '" data-tab="my-books">我的书</button>';
+    html += '<button class="tab-btn' + (tab === "public" ? " active" : "") + '" data-tab="public">广场</button>';
+    html += '</div>';
+
+    if (tab === "library") {
+      html += renderBookGrid(state.books, false);
+    } else if (tab === "my-books") {
+      html += '<div class="my-books-actions">';
+      html += '<button class="create-book-btn" id="create-book-btn">+ 创建新书</button>';
       html += '</div>';
+      html += renderMyBookList(state.myBooks);
+    } else {
+      html += renderBookGrid(state.publicBooks, true);
     }
-    html += '<div class="bookshelf">';
-    for (var i = 0; i < state.books.length; i++) {
-      var b = state.books[i];
-      html += '<div class="book-3d" data-id="' + b.id + '">';
+
+    html += '</div>';
+    app.innerHTML = html;
+
+    // Low balance warning
+    if (state.user && state.user.balance_coins < 20) {
+      showToast("阅读币不足 20，请及时充值");
+    }
+
+    // Tab switching
+    var tabBtns = app.querySelectorAll(".tab-btn");
+    for (var i = 0; i < tabBtns.length; i++) {
+      tabBtns[i].addEventListener("click", function () {
+        var t = this.getAttribute("data-tab");
+        if (state.listTab === t) return;
+        state.listTab = t;
+        if (t === "public" && state.publicBooks.length === 0) {
+          fetchPublicBooks().then(render);
+        } else if (t === "my-books" && state.myBooks.length === 0) {
+          fetchMyBooks().then(render);
+        } else {
+          render();
+        }
+      });
+    }
+
+    // Create book
+    var createBtn = document.getElementById("create-book-btn");
+    if (createBtn) {
+      createBtn.addEventListener("click", function () {
+        state.editBook = { id: null, title: "", paragraphs: "" };
+        state.view = "edit-book";
+        render();
+      });
+    }
+
+    // Book cards
+    var bookCards = app.querySelectorAll("[data-book-id]");
+    for (var j = 0; j < bookCards.length; j++) {
+      bookCards[j].addEventListener("click", function () {
+        var id = this.getAttribute("data-book-id");
+        var isUser = this.getAttribute("data-user-book") === "1";
+        if (isUser) openUserBook(id);
+        else openBook(id);
+      });
+    }
+
+    // My-book action buttons
+    app.querySelectorAll("[data-edit-book]").forEach(function (el) {
+      el.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var id = this.getAttribute("data-edit-book");
+        var book = state.myBooks.find(function (b) { return b.id === id; });
+        if (book) {
+          var paras = parseParagraphs(book.paragraphs);
+          state.editBook = { id: book.id, title: book.title, paragraphs: paras.join("\n") };
+          state.view = "edit-book";
+          render();
+        }
+      });
+    });
+
+    app.querySelectorAll("[data-publish-book]").forEach(function (el) {
+      el.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var id = this.getAttribute("data-publish-book");
+        if (!confirm("公开后无法取消，确定公开此书吗？")) return;
+        apiJSON("POST", "/api/user-books/" + id + "/publish", {}).then(function () {
+          showToast("已公开！其他用户可以阅读了");
+          fetchMyBooks().then(render);
+        }).catch(function (e) {
+          showToast("公开失败: " + (e.message || "请重试"));
+        });
+      });
+    });
+
+    app.querySelectorAll("[data-cover-book]").forEach(function (el) {
+      el.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var id = this.getAttribute("data-cover-book");
+        var title = this.getAttribute("data-cover-title");
+        apiJSON("POST", "/api/user-books/" + id + "/cover", { prompt: title }).then(function (res) {
+          showToast("封面生成成功！");
+          fetchMyBooks().then(function () { fetchMe().then(render); });
+        }).catch(function (e) {
+          showToast("封面生成失败: " + (e.message || "请重试"));
+        });
+      });
+    });
+  }
+
+  function renderBookGrid(books, isPublic) {
+    if (!books || books.length === 0) {
+      return '<div class="empty-tip">' + (isPublic ? "暂无公开书本" : "暂无书籍") + '</div>';
+    }
+    var html = '<div class="bookshelf">';
+    for (var i = 0; i < books.length; i++) {
+      var b = books[i];
+      var coverSrc = b.cover ? API + "/data/" + b.cover : "";
+      html += '<div class="book-3d" data-book-id="' + b.id + '" data-user-book="' + (isPublic ? "1" : "0") + '">';
       html += '<div class="book-3d-inner">';
       html += '<div class="book-3d-spine"></div>';
       html += '<div class="book-3d-front">';
-      if (b.cover) html += '<img src="' + API + '/data/' + b.cover + '" alt="">';
+      if (coverSrc) html += '<img src="' + coverSrc + '" alt="">';
       else html += '<div class="book-3d-placeholder">' + escapeHtml(b.title) + '</div>';
       html += '</div>';
       html += '<div class="book-3d-top"></div>';
       html += '<div class="book-3d-right"></div>';
       html += '</div>';
       html += '<div class="book-3d-label">' + escapeHtml(b.title) + '</div>';
-      html += '<div class="book-3d-progress" id="progress-' + b.id + '"></div>';
+      if (!isPublic) {
+        var idx = loadProgress(b.id);
+        if (idx > 0) html += '<div class="book-3d-progress">已读第 ' + (idx + 1) + ' 句</div>';
+      }
       html += '</div>';
     }
-    html += '</div></div>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderMyBookList(books) {
+    if (!books || books.length === 0) {
+      return '<div class="empty-tip">还没有创建书本</div>';
+    }
+    var html = '<div class="my-book-list">';
+    for (var i = 0; i < books.length; i++) {
+      var b = books[i];
+      var paras = parseParagraphs(b.paragraphs);
+      html += '<div class="my-book-item" data-book-id="' + b.id + '" data-user-book="1">';
+      html += '<div class="my-book-cover">';
+      if (b.cover) html += '<img src="' + API + '/data/' + b.cover + '" alt="">';
+      else html += '<div class="my-book-cover-placeholder">' + escapeHtml(b.title.slice(0, 2)) + '</div>';
+      html += '</div>';
+      html += '<div class="my-book-info">';
+      html += '<div class="my-book-title">' + escapeHtml(b.title) + '</div>';
+      html += '<div class="my-book-meta">' + paras.length + ' 段' +
+        (b.is_public ? ' · <span class="public-badge">已公开</span>' : '') + '</div>';
+      html += '</div>';
+      html += '<div class="my-book-actions">';
+      html += '<button class="my-book-btn" data-edit-book="' + b.id + '">编辑</button>';
+      if (!b.cover) {
+        html += '<button class="my-book-btn" data-cover-book="' + b.id + '" data-cover-title="' + escapeHtml(b.title) + '">封面 <small>(4币)</small></button>';
+      }
+      if (!b.is_public) {
+        html += '<button class="my-book-btn my-book-btn-publish" data-publish-book="' + b.id + '">公开</button>';
+      }
+      html += '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function renderEditBook() {
+    var isNew = !state.editBook.id;
+    var html = '<div class="view">';
+    html += renderUserBar(false);
+    html += '<div class="edit-book-header">';
+    html += '<button class="back-btn" id="back-btn">取消</button>';
+    html += '<span class="header-title">' + (isNew ? "创建新书" : "编辑书本") + '</span>';
+    html += '<button class="save-btn" id="save-book-btn">保存</button>';
+    html += '</div>';
+    html += '<div class="edit-book-body">';
+    html += '<label class="edit-label">书名</label>';
+    html += '<input id="edit-title" class="edit-input" placeholder="请输入书名" value="' + escapeHtml(state.editBook.title) + '">';
+    html += '<label class="edit-label">段落内容 <small>（每行一个段落）</small></label>';
+    html += '<textarea id="edit-paragraphs" class="edit-textarea" placeholder="每行一个英文段落，例如：\nThe sun rose slowly over the mountains.\nShe walked along the quiet path...">' + escapeHtml(state.editBook.paragraphs) + '</textarea>';
+    html += '</div>';
+    html += '</div>';
     app.innerHTML = html;
 
-    state.books.forEach(function (b) {
-      var idx = loadProgress(b.id);
-      var el = document.getElementById("progress-" + b.id);
-      if (el && idx > 0) el.textContent = "已听到第 " + (idx + 1) + " 句";
+    document.getElementById("back-btn").addEventListener("click", function () {
+      state.view = "list";
+      state.listTab = "my-books";
+      render();
     });
 
-    var items = app.querySelectorAll(".book-3d");
-    for (var j = 0; j < items.length; j++) {
-      items[j].addEventListener("click", function () { openBook(this.getAttribute("data-id")); });
+    document.getElementById("save-book-btn").addEventListener("click", function () {
+      var title = document.getElementById("edit-title").value.trim();
+      var raw = document.getElementById("edit-paragraphs").value.trim();
+      if (!title) { showToast("请输入书名"); return; }
+      var paras = raw.split(/\n+/).map(function (l) { return l.trim(); }).filter(Boolean);
+      if (paras.length === 0) { showToast("请输入至少一段内容"); return; }
+      saveBook(state.editBook.id, title, paras);
+    });
+  }
+
+  function saveBook(id, title, paragraphs) {
+    var paragraphsJSON = JSON.stringify(paragraphs);
+    if (!id) {
+      // Create
+      apiJSON("POST", "/api/user-books", { title: title }).then(function (book) {
+        if (!book || !book.id) throw new Error("创建失败");
+        return apiJSON("PUT", "/api/user-books/" + book.id, {
+          title: title, cover: "", paragraphs: paragraphsJSON
+        }).then(function () { return book.id; });
+      }).then(function () {
+        showToast("书本已创建");
+        state.view = "list";
+        state.listTab = "my-books";
+        fetchMyBooks().then(render);
+      }).catch(function (e) { showToast("创建失败: " + (e.message || "请重试")); });
+    } else {
+      // Update
+      apiJSON("PUT", "/api/user-books/" + id, {
+        title: title, cover: "", paragraphs: paragraphsJSON
+      }).then(function () {
+        showToast("已保存");
+        state.view = "list";
+        state.listTab = "my-books";
+        fetchMyBooks().then(render);
+      }).catch(function (e) { showToast("保存失败: " + (e.message || "请重试")); });
     }
   }
 
@@ -466,6 +709,7 @@
       state.view = "list";
       state.currentBook = null;
       state.wordPopup = null;
+      if (book.isUserBook) state.listTab = "my-books";
       render();
     });
 
@@ -556,6 +800,32 @@
     });
   }
 
+  function openUserBook(id) {
+    // Try local state first
+    var book = state.myBooks.find(function (b) { return b.id === id; }) ||
+               state.publicBooks.find(function (b) { return b.id === id; });
+    var promise = book ? Promise.resolve(book) : fetchUserBook(id);
+    promise.then(function (b) {
+      if (!b) return;
+      var paras = parseParagraphs(b.paragraphs);
+      state.currentBook = {
+        id: b.id,
+        title: b.title,
+        cover: b.cover,
+        paragraphs: paras,
+        isUserBook: true,
+      };
+      state.sentenceIndex = loadProgress(b.id);
+      state.view = "player";
+      state.showText = true;
+      state.showTranslation = true;
+      state.playing = false;
+      loadPhraseTranslations().then(function () {
+        render();
+      });
+    });
+  }
+
   // ---- Init ----
 
   function init() {
@@ -564,8 +834,9 @@
       state.token = savedToken;
       fetchMe().then(function () {
         state.view = "list";
-        return fetchBooks();
+        return Promise.all([fetchBooks(), fetchMyBooks()]);
       }).then(render).catch(function () {
+        state.token = null;
         state.view = "login";
         render();
       });

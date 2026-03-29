@@ -167,7 +167,7 @@ var postgresTables = []string{
 		title TEXT NOT NULL,
 		cover TEXT NOT NULL DEFAULT '',
 		paragraphs TEXT NOT NULL DEFAULT '[]',
-		is_public BOOLEAN NOT NULL DEFAULT FALSE,
+		is_public INTEGER NOT NULL DEFAULT 0,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	)`,
 	`CREATE TABLE IF NOT EXISTS usage_logs (
@@ -374,6 +374,14 @@ type UserBook struct {
 	IsPublic   bool   `json:"is_public"`
 }
 
+func scanUserBook(row interface{ Scan(...any) error }) (*UserBook, error) {
+	var b UserBook
+	var isPublic int
+	err := row.Scan(&b.ID, &b.UserID, &b.Title, &b.Cover, &b.Paragraphs, &isPublic)
+	b.IsPublic = isPublic != 0
+	return &b, err
+}
+
 func CreateUserBook(userID, title string) (*UserBook, error) {
 	b := &UserBook{
 		ID:         NewULID(),
@@ -392,17 +400,16 @@ func CreateUserBook(userID, title string) (*UserBook, error) {
 }
 
 func GetUserBook(id string) (*UserBook, error) {
-	var b UserBook
-	err := DB.QueryRow(
+	b, err := scanUserBook(DB.QueryRow(
 		"SELECT id, user_id, title, cover, paragraphs, is_public FROM user_books WHERE id = $1", id,
-	).Scan(&b.ID, &b.UserID, &b.Title, &b.Cover, &b.Paragraphs, &b.IsPublic)
+	))
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &b, nil
+	return b, nil
 }
 
 func GetUserBooks(userID string) ([]UserBook, error) {
@@ -416,22 +423,20 @@ func GetUserBooks(userID string) ([]UserBook, error) {
 
 	var books []UserBook
 	for rows.Next() {
-		var b UserBook
-		if err := rows.Scan(&b.ID, &b.UserID, &b.Title, &b.Cover, &b.Paragraphs, &b.IsPublic); err != nil {
+		b, err := scanUserBook(rows)
+		if err != nil {
 			return nil, err
 		}
-		books = append(books, b)
+		books = append(books, *b)
 	}
 	return books, rows.Err()
 }
 
 // GetPublicBooks returns all public user books (from any user).
 func GetPublicBooks() ([]UserBook, error) {
-	q := "SELECT id, user_id, title, cover, paragraphs, is_public FROM user_books WHERE is_public = 1"
-	if dbDriverName == "pgx" {
-		q = "SELECT id, user_id, title, cover, paragraphs, is_public FROM user_books WHERE is_public = true"
-	}
-	rows, err := DB.Query(q)
+	rows, err := DB.Query(
+		"SELECT id, user_id, title, cover, paragraphs, is_public FROM user_books WHERE is_public = 1",
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -439,22 +444,18 @@ func GetPublicBooks() ([]UserBook, error) {
 
 	var books []UserBook
 	for rows.Next() {
-		var b UserBook
-		if err := rows.Scan(&b.ID, &b.UserID, &b.Title, &b.Cover, &b.Paragraphs, &b.IsPublic); err != nil {
+		b, err := scanUserBook(rows)
+		if err != nil {
 			return nil, err
 		}
-		books = append(books, b)
+		books = append(books, *b)
 	}
 	return books, rows.Err()
 }
 
-// PublishBook sets is_public=true. Once public, cannot be unpublished.
+// PublishBook sets is_public=1. Once public, cannot be unpublished.
 func PublishBook(bookID string) error {
-	q := "UPDATE user_books SET is_public = 1 WHERE id = $1"
-	if dbDriverName == "pgx" {
-		q = "UPDATE user_books SET is_public = true WHERE id = $1"
-	}
-	_, err := DB.Exec(q, bookID)
+	_, err := DB.Exec("UPDATE user_books SET is_public = 1 WHERE id = $1", bookID)
 	return err
 }
 

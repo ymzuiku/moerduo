@@ -379,6 +379,60 @@ func main() {
 		json.NewEncoder(w).Encode(books)
 	})))
 
+	// GET /api/user-books/{id} — get single user book
+	mux.Handle("GET /api/user-books/{id}", auth.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		bookID := r.PathValue("id")
+		book, err := db.GetUserBook(bookID)
+		if err != nil || book == nil {
+			jsonError(w, "book not found", 404)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(book)
+	})))
+
+	// PUT /api/user-books/{id} — update title, cover, paragraphs
+	mux.Handle("PUT /api/user-books/{id}", auth.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Title      string `json:"title"`
+			Cover      string `json:"cover"`
+			Paragraphs string `json:"paragraphs"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			jsonError(w, "bad request", 400)
+			return
+		}
+		bookID := r.PathValue("id")
+		userID := auth.UserIDFromContext(r.Context())
+		book, err := db.GetUserBook(bookID)
+		if err != nil || book == nil {
+			jsonError(w, "book not found", 404)
+			return
+		}
+		if book.UserID != userID {
+			jsonError(w, "forbidden", 403)
+			return
+		}
+		title := req.Title
+		if title == "" {
+			title = book.Title
+		}
+		cover := req.Cover
+		if cover == "" {
+			cover = book.Cover
+		}
+		paragraphs := req.Paragraphs
+		if paragraphs == "" {
+			paragraphs = book.Paragraphs
+		}
+		if err := db.UpdateUserBook(bookID, title, cover, paragraphs); err != nil {
+			jsonError(w, err.Error(), 500)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+	})))
+
 	// POST /api/user-books/{id}/cover — generate cover image
 	mux.Handle("POST /api/user-books/{id}/cover", auth.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
@@ -410,7 +464,9 @@ func main() {
 		}
 
 		bookID := r.PathValue("id")
-		db.UpdateUserBook(bookID, "", coverURL, "")
+		if _, err := db.DB.Exec("UPDATE user_books SET cover = $1 WHERE id = $2", coverURL, bookID); err != nil {
+			log.Printf("update cover: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"cover": coverURL})
