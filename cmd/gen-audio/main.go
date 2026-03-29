@@ -2,19 +2,20 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"time"
 
 	"github.com/joho/godotenv"
 	lf "github.com/ymzuiku/listening-first"
 )
 
 type Book struct {
-	ID        string   `json:"id"`
-	Title     string   `json:"title"`
-	Sentences []string `json:"sentences"`
+	ID         string   `json:"id"`
+	Title      string   `json:"title"`
+	Paragraphs []string `json:"paragraphs"`
 }
 
 func main() {
@@ -32,30 +33,24 @@ func main() {
 	os.MkdirAll(outDir, 0755)
 
 	count := 10
-	if count > len(book.Sentences) {
-		count = len(book.Sentences)
+	if count > len(book.Paragraphs) {
+		count = len(book.Paragraphs)
 	}
 
 	for i := 0; i < count; i++ {
 		outFile := fmt.Sprintf("%s/%04d.mp3", outDir, i)
-		if _, err := os.Stat(outFile); err == nil {
+		if info, err := os.Stat(outFile); err == nil && info.Size() > 0 {
 			fmt.Printf("[%d/%d] skip (exists): %s\n", i+1, count, outFile)
 			continue
 		}
 
-		fmt.Printf("[%d/%d] generating: %s\n", i+1, count, book.Sentences[i][:min(60, len(book.Sentences[i]))])
-		result, err := lf.TextToSpeech(context.Background(), lf.TextToSpeechRequest{
-			Text:  book.Sentences[i],
+		fmt.Printf("[%d/%d] generating: %s\n", i+1, count, book.Paragraphs[i][:min(60, len(book.Paragraphs[i]))])
+		audio, err := lf.TextToSpeech(context.Background(), lf.TextToSpeechRequest{
+			Text:  book.Paragraphs[i],
 			Speed: 0.9,
 		})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "TTS error sentence %d: %v\n", i, err)
-			continue
-		}
-
-		audio, err := hex.DecodeString(result.AudioHex)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "decode hex error sentence %d: %v\n", i, err)
 			continue
 		}
 
@@ -64,6 +59,7 @@ func main() {
 			continue
 		}
 		fmt.Printf("[%d/%d] saved: %s (%d bytes)\n", i+1, count, outFile, len(audio))
+		time.Sleep(2 * time.Second)
 	}
 	fmt.Println("Done!")
 }

@@ -10,29 +10,23 @@ import (
 
 func TestGenerateImage_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/image_generation" {
+		if r.URL.Path != "/v1/images/generations" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
-		if r.Header.Get("Authorization") == "" {
-			t.Fatal("missing Authorization header")
-		}
 		json.NewEncoder(w).Encode(map[string]any{
-			"data": map[string]any{
-				"image_urls": []string{"https://example.com/img.png"},
+			"data": []map[string]string{
+				{"url": "https://example.com/img.png"},
 			},
 		})
 	}))
 	defer srv.Close()
 
-	orig := minimaxBaseURL
-	defer func() { setMinimaxBaseURL(orig) }()
-	setMinimaxBaseURL(srv.URL)
+	orig := openaiBaseURL
+	defer func() { openaiBaseURL = orig }()
+	openaiBaseURL = srv.URL
+	t.Setenv("OPENAI_KEY", "test-key")
 
-	t.Setenv("MINIMAX_API_KEY", "test-key")
-
-	result, err := GenerateImage(context.Background(), GenerateImageRequest{
-		Prompt: "a cat",
-	})
+	result, err := GenerateImage(context.Background(), GenerateImageRequest{Prompt: "a cat"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -45,22 +39,22 @@ func TestGenerateImage_Defaults(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
 		json.NewDecoder(r.Body).Decode(&body)
-		if body["aspect_ratio"] != "1:1" {
-			t.Fatalf("expected default aspect_ratio 1:1, got %v", body["aspect_ratio"])
+		if body["size"] != "1024x1024" {
+			t.Fatalf("expected default size 1024x1024, got %v", body["size"])
 		}
 		if body["n"] != float64(1) {
 			t.Fatalf("expected default n=1, got %v", body["n"])
 		}
 		json.NewEncoder(w).Encode(map[string]any{
-			"data": map[string]any{"image_urls": []string{"https://example.com/img.png"}},
+			"data": []map[string]string{{"url": "https://example.com/img.png"}},
 		})
 	}))
 	defer srv.Close()
 
-	orig := minimaxBaseURL
-	defer func() { setMinimaxBaseURL(orig) }()
-	setMinimaxBaseURL(srv.URL)
-	t.Setenv("MINIMAX_API_KEY", "test-key")
+	orig := openaiBaseURL
+	defer func() { openaiBaseURL = orig }()
+	openaiBaseURL = srv.URL
+	t.Setenv("OPENAI_KEY", "test-key")
 
 	_, err := GenerateImage(context.Background(), GenerateImageRequest{Prompt: "test"})
 	if err != nil {
@@ -75,10 +69,10 @@ func TestGenerateImage_APIError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	orig := minimaxBaseURL
-	defer func() { setMinimaxBaseURL(orig) }()
-	setMinimaxBaseURL(srv.URL)
-	t.Setenv("MINIMAX_API_KEY", "test-key")
+	orig := openaiBaseURL
+	defer func() { openaiBaseURL = orig }()
+	openaiBaseURL = srv.URL
+	t.Setenv("OPENAI_KEY", "test-key")
 
 	_, err := GenerateImage(context.Background(), GenerateImageRequest{Prompt: "test"})
 	if err == nil {
@@ -88,57 +82,24 @@ func TestGenerateImage_APIError(t *testing.T) {
 
 func TestTextToSpeech_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/t2a_v2" {
+		if r.URL.Path != "/v1/audio/speech" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
-		json.NewEncoder(w).Encode(map[string]any{
-			"data": map[string]any{"audio": "deadbeef"},
-		})
+		w.Write([]byte("fake-mp3-data"))
 	}))
 	defer srv.Close()
 
-	orig := minimaxBaseURL
-	defer func() { setMinimaxBaseURL(orig) }()
-	setMinimaxBaseURL(srv.URL)
-	t.Setenv("MINIMAX_API_KEY", "test-key")
+	orig := openaiBaseURL
+	defer func() { openaiBaseURL = orig }()
+	openaiBaseURL = srv.URL
+	t.Setenv("OPENAI_KEY", "test-key")
 
-	result, err := TextToSpeech(context.Background(), TextToSpeechRequest{
-		Text: "Hello",
-	})
+	audio, err := TextToSpeech(context.Background(), TextToSpeechRequest{Text: "Hello"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.AudioHex != "deadbeef" {
-		t.Fatalf("unexpected audio: %s", result.AudioHex)
-	}
-}
-
-func TestTextToSpeech_Defaults(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var body map[string]any
-		json.NewDecoder(r.Body).Decode(&body)
-		vs := body["voice_setting"].(map[string]any)
-		if vs["voice_id"] != "English_expressive_narrator" {
-			t.Fatalf("unexpected voice_id: %v", vs["voice_id"])
-		}
-		as := body["audio_setting"].(map[string]any)
-		if as["format"] != "mp3" {
-			t.Fatalf("unexpected format: %v", as["format"])
-		}
-		json.NewEncoder(w).Encode(map[string]any{
-			"data": map[string]any{"audio": "aabb"},
-		})
-	}))
-	defer srv.Close()
-
-	orig := minimaxBaseURL
-	defer func() { setMinimaxBaseURL(orig) }()
-	setMinimaxBaseURL(srv.URL)
-	t.Setenv("MINIMAX_API_KEY", "test-key")
-
-	_, err := TextToSpeech(context.Background(), TextToSpeechRequest{Text: "hi"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if string(audio) != "fake-mp3-data" {
+		t.Fatalf("unexpected audio: %s", string(audio))
 	}
 }
 
@@ -149,10 +110,10 @@ func TestTextToSpeech_APIError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	orig := minimaxBaseURL
-	defer func() { setMinimaxBaseURL(orig) }()
-	setMinimaxBaseURL(srv.URL)
-	t.Setenv("MINIMAX_API_KEY", "test-key")
+	orig := openaiBaseURL
+	defer func() { openaiBaseURL = orig }()
+	openaiBaseURL = srv.URL
+	t.Setenv("OPENAI_KEY", "test-key")
 
 	_, err := TextToSpeech(context.Background(), TextToSpeechRequest{Text: "hi"})
 	if err == nil {

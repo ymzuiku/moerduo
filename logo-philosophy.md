@@ -1,0 +1,11 @@
+# Resonant Geometry
+
+## Design Philosophy
+
+Sound is invisible architecture. It fills space before we name it, shapes understanding before we speak. *Resonant Geometry* treats auditory phenomena as structural material — concentric forms radiating from a point of origin, the way a single tone expands into comprehension. Every element is placed with the meticulous precision of a master acoustician tuning a concert hall, each curve calibrated through painstaking iteration until the composition hums with inevitability.
+
+Form emerges from repetition and subtle variation. Concentric arcs, nested circles, and radiating lines create rhythm without sound — visual frequencies that the eye reads as pulse and breath. The geometry is never rigid; it breathes like a waveform, expanding and contracting with organic confidence. This is the product of deep expertise: the kind of work where removing one element would collapse the entire composition, where every radius and every gap between forms has been labored over with the care of someone who understands that silence between notes matters as much as the notes themselves.
+
+Color is restrained to the point of reverence. A single luminous accent — electric, precise, alive — emerges from deep darkness like a signal cutting through noise. The palette treats darkness not as absence but as the medium through which meaning travels. Cool blacks and near-blacks provide depth and gravity; the accent color carries all the energy, all the information. This chromatic discipline, meticulously crafted through countless refinements, ensures that when color appears, it resonates with the authority of a tuning fork struck in a silent room.
+
+Typography, when it appears at all, is whispered — thin, geometric, spaced with the deliberation of someone who has spent hours adjusting kerning by fractions of a point. Letters become part of the geometric system, not decoration upon it. Scale is used with master-level execution: the mark must function at the size of a fingertip and at the scale of a billboard, losing nothing in translation. The final artifact should feel inevitable — as though it always existed, waiting to be discovered by someone with the painstaking attention required to find it.

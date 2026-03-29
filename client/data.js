@@ -1,0 +1,82 @@
+var BOOKS_DATA = [
+  {
+    "id": "robinson-crusoe",
+    "title": "Robinson Crusoe",
+    "cover": "covers/robinson-crusoe.jpg",
+    "paragraphs": [
+      "I was born in the year 1632, in the city of York,",
+      "of a good family, though not of that country,",
+      "my father being a foreigner of Bremen, who settled first at Hull.",
+      "He got a good estate by merchandise, and leaving off his trade, lived afterwards at York, from whence he had married my mother, whose relations were named Robinson, a very good family in that country, and from whom I was called Robinson Kreutznaer; but, by the usual corruption of words in England, we are now called\u2014nay, we call ourselves and write our name\u2014Crusoe; and so my companions always called me.",
+      "I had two elder brothers, one of whom was lieutenant-colonel to an English regiment of foot in Flanders, formerly commanded by the famous Colonel Lockhart, and was killed at the battle near Dunkirk against the Spaniards.",
+      "What became of my second brother I never knew,",
+      "any more than my father or mother knew what became of me.",
+      "Being the third son of the family and not bred to any trade,",
+      "my head began to be filled very early with rambling thoughts.",
+      "My father, who was very ancient, had given me a competent share of learning, as far as house-education and a country free school generally go, and designed me for the law; but I would be satisfied with nothing but going to sea; and my inclination to this led me so strongly against the will, nay, the commands of my father, and against all the entreaties and persuasions of my mother and other friends, that there seemed to be something fatal in that propensity of nature, tending directly to the life of misery which was to befall me.",
+      "My father, a wise and grave man, gave",
+      "me serious and excellent counsel against what he foresaw was my design.",
+      "He called me one morning into his chamber, where he was confined by the gout,",
+      "and expostulated very warmly with me upon this subject.",
+      "He asked me what reasons, more than a mere wandering inclination, I had for leaving father\u2019s house and my native country, where I might be well introduced, and had a prospect of raising my fortune by application and industry, with a life of ease and pleasure.",
+      "He told me it was men of desperate fortunes on one hand, or of aspiring, superior fortunes on the other, who went abroad upon adventures, to rise by enterprise, and make themselves famous in undertakings of a nature out of the common road; that these things were all either too far above me or too far below me; that mine was the middle state, or what might be called the upper station of low life, which he had found, by long experience, was the best state in the world, the most suited to human happiness, not exposed to the miseries and hardships, the labour and sufferings of the mechanic part of mankind, and not embarrassed with the pride, luxury, ambition, and envy of the upper part of mankind."
+    ],
+    "translations": [
+      "\u6211\u4e8e1632\u5e74\u51fa\u751f\u5728\u7ea6\u514b\u57ce\u3002",
+      "\u51fa\u8eab\u4e8e\u4e00\u4e2a\u826f\u597d\u7684\u5bb6\u5ead\uff0c\u867d\u7136\u5e76\u975e\u672c\u5730\u4eba\u3002",
+      "\u6211\u7684\u7236\u4eb2\u662f\u4e0d\u6765\u6885\u7684\u5916\u56fd\u4eba\uff0c\u6700\u521d\u5728\u8d6b\u5c14\u5b9a\u5c45\u3002",
+      "\u4ed6\u901a\u8fc7\u7ecf\u5546\u79ef\u7d2f\u4e86\u4e30\u539a\u7684\u5bb6\u4e1a\uff0c\u968f\u540e\u505c\u4e1a\uff0c\u5c45\u4f4f\u5728\u7ea6\u514b\uff0c\u5728\u90a3\u91cc\u4ed6\u5a36\u4e86\u6211\u7684\u6bcd\u4eb2\u3002\u5979\u7684\u4eb2\u5c5e\u59d3\u9c81\u5bbe\u900a\uff0c\u662f\u5f53\u5730\u7684\u540d\u95e8\u671b\u65cf\uff0c\u6211\u4ece\u5979\u90a3\u91cc\u5f97\u540d\u9c81\u5bbe\u900a\u00b7\u514b\u9c81\u8328\u7eb3\u5c14\uff1b\u7136\u800c\u7531\u4e8e\u82f1\u8bed\u4e2d\u5e38\u89c1\u7684\u8bcd\u5f62\u53d8\u5316\uff0c\u6211\u4eec\u73b0\u5728\u88ab\u79f0\u4e3a\u2014\u2014\u4e0d\uff0c\u6211\u4eec\u81ea\u79f0\u5e76\u5199\u4e3a\u2014\u2014\u514b\u9c81\u7d22\uff1b\u4e8e\u662f\u6211\u7684\u4f19\u4f34\u4eec\u4e00\u76f4\u8fd9\u6837\u53eb\u6211\u3002",
+      "\u6211\u6709\u4e24\u4e2a\u54e5\u54e5\uff0c\u5176\u4e2d\u4e00\u4f4d\u662f\u82f1\u56fd\u6b65\u5175\u56e2\u5728\u4f5b\u5170\u5fb7\u65af\u7684\u526f\u5b98\uff08lieutenant\u2011colonel\uff09\uff0c\u8be5\u56e2\u539f\u7531\u8457\u540d\u7684\u6d1b\u514b\u54c8\u7279\u4e0a\u6821\u6307\u6325\uff0c\u5728\u9760\u8fd1\u6566\u523b\u5c14\u514b\u7684\u6218\u5f79\u4e2d\u4e0e\u897f\u73ed\u7259\u4eba\u4f5c\u6218\u65f6\u9635\u4ea1\u3002",
+      "\u6211\u7684\u7b2c\u4e8c\u4e2a\u54e5\u54e5\u7684\u4e0b\u843d\u6211\u4ece\u672a\u5f97\u77e5\u3002",
+      "\u6b63\u5982\u6211\u7684\u7236\u4eb2\u548c\u6bcd\u4eb2\u4e5f\u4e0d\u77e5\u9053\u6211\u7684\u4e0b\u843d\u4e00\u6837\u3002",
+      "\u4f5c\u4e3a\u5bb6\u4e2d\u7684\u7b2c\u4e09\u4e2a\u513f\u5b50\uff0c\u4e14\u6ca1\u6709\u5b66\u4efb\u4f55\u624b\u827a\uff0c",
+      "\u6211\u5f88\u5c0f\u7684\u65f6\u5019\u5c31\u6ee1\u8111\u5b50\u5145\u6ee1\u4e86\u6f02\u6cca\u7684\u5ff5\u5934\u3002",
+      "\u6211\u7684\u7236\u4eb2\u5e74\u4e8b\u5df2\u9ad8\uff0c\u66fe\u7ed9\u6211\u76f8\u5f53\u7684\u6559\u80b2\uff0c\u9650\u4e8e\u5bb6\u5ead\u6559\u80b2\u4ee5\u53ca\u4e61\u6751\u5b66\u6821\u901a\u5e38\u7684\u6559\u5b66\u5185\u5bb9\uff0c\u6253\u7b97\u8ba9\u6211\u5b66\u6cd5\u5f8b\uff1b\u53ef\u6211\u53ea\u60f3\u822a\u6d77\uff0c\u522b\u65e0\u6240\u6c42\uff1b\u8fd9\u79cd\u5f3a\u70c8\u7684\u822a\u6d77\u503e\u5411\u8ba9\u6211\u8fdd\u80cc\u4e86\u7236\u4eb2\u7684\u610f\u613f\uff0c\u751a\u81f3\u8fdd\u80cc\u4ed6\u7684\u547d\u4ee4\uff0c\u4e5f\u8fdd\u80cc\u4e86\u6bcd\u4eb2\u548c\u5176\u4ed6\u670b\u53cb\u7684\u6073\u6c42\u4e0e\u529d\u8bf4\uff0c\u4eff\u4f5b\u6709\u4e00\u79cd\u5bbf\u547d\u822c\u7684\u6267\u5ff5\uff0c\u76f4\u63a5\u628a\u6211\u63a8\u5411\u65e5\u540e\u7684\u82e6\u96be\u751f\u6d3b\u3002",
+      "\u6211\u7684\u7236\u4eb2\u2014\u2014\u4e00\u4f4d\u777f\u667a\u800c\u5e84\u91cd\u7684\u4eba\uff0c",
+      "\u7ed9\u6211\u4e25\u8083\u800c\u6781\u597d\u7684\u5fe0\u544a\uff0c\u9488\u5bf9\u4ed6\u6240\u9884\u89c1\u5230\u7684\u6211\u7684\u8ba1\u5212\u3002",
+      "\u4e00\u5929\u65e9\u6668\uff0c\u4ed6\u628a\u6211\u53eb\u8fdb\u4ed6\u7684\u623f\u95f4\uff0c\u5f53\u65f6\u4ed6\u6b63\u56e0\u75db\u98ce\u800c\u5367\u5e8a\uff0c",
+      "\u5e76\u5c31\u6b64\u4e8b\u5411\u6211\u70ed\u60c5\u5730\u9648\u8ff0\u610f\u89c1\u3002",
+      "\u4ed6\u95ee\u6211\uff0c\u9664\u4e86\u5355\u7eaf\u7684\u6f02\u6cca\u4e4b\u5ff5\uff0c\u8fd8\u6709\u4ec0\u4e48\u7406\u7531\u8981\u79bb\u5f00\u7236\u4eb2\u7684\u5bb6\u548c\u6211\u7684\u7956\u56fd\uff0c\u5728\u90a3\u91cc\u6211\u53ef\u4ee5\u5f97\u5230\u826f\u597d\u7684\u4ecb\u7ecd\uff0c\u51ed\u7740\u52e4\u594b\u548c\u52aa\u529b\u6709\u671b\u53d1\u5bb6\u81f4\u5bcc\uff0c\u8fc7\u4e0a\u5b89\u9038\u5feb\u4e50\u7684\u751f\u6d3b\u3002",
+      "\u4ed6\u544a\u8bc9\u6211\uff0c\u53ea\u6709\u4e24\u7c7b\u4eba\u4f1a\u51fa\u56fd\u5192\u9669\uff1a\u4e00\u7c7b\u662f\u9677\u5165\u7edd\u5883\u3001\u5b64\u6ce8\u4e00\u63b7\u7684\u4eba\uff0c\u53e6\u4e00\u7c7b\u662f\u80f8\u6000\u5927\u5fd7\u3001\u8ffd\u6c42\u66f4\u9ad8\u5730\u4f4d\u7684\u4eba\uff1b\u4ed6\u4eec\u60f3\u901a\u8fc7\u521b\u4e1a\u5d1b\u8d77\uff0c\u6210\u5c31\u5728\u5e38\u8f68\u4e4b\u5916\u7684\u4e8b\u4e1a\uff0c\u4ece\u800c\u6210\u540d\uff1b\u8fd9\u4e9b\u4e8b\u60c5\u8981\u4e48\u8fdc\u9ad8\u4e8e\u6211\uff0c\u8981\u4e48\u8fdc\u4f4e\u4e8e\u6211\uff1b\u6211\u6240\u5904\u7684\u5219\u662f\u4e2d\u7b49\u9636\u5c42\uff0c\u6216\u53ef\u79f0\u4e3a\u4f4e\u5c42\u751f\u6d3b\u4e2d\u7684\u4e0a\u5c42\u5730\u4f4d\uff0c\u4ed6\u901a\u8fc7\u957f\u671f\u7ecf\u9a8c\u53d1\u73b0\uff0c\u8fd9\u662f\u4e16\u4e0a\u6700\u5e78\u798f\u7684\u72b6\u6001\uff0c\u65e2\u4e0d\u81f4\u9677\u5165\u5de5\u5320\u9636\u5c42\u7684\u82e6\u96be\u4e0e\u52b3\u5f79\uff0c\u4e5f\u4e0d\u88ab\u4e0a\u5c42\u793e\u4f1a\u7684\u9a84\u50b2\u3001\u5962\u534e\u3001\u91ce\u5fc3\u548c\u5ac9\u5992\u6240\u56f0\u6270\u3002"
+    ]
+  },
+  {
+    "id": "the-little-prince",
+    "title": "The Little Prince",
+    "cover": "covers/the-little-prince.jpg",
+    "paragraphs": [
+      "Once when I was six years old I saw a magnificent picture in a book,",
+      "called True Stories from Nature, about the primeval forest.",
+      "It was a picture of a boa constrictor in the act of swallowing an animal.",
+      "Here is a copy of the drawing.",
+      "In the book it said: \u201cBoa constrictors swallow their prey whole, without chewing it.",
+      "After that they are not able to move,",
+      "and they sleep through the six months that they need for digestion.",
+      "\u201d I pondered deeply, then, over the adventures of the jungle.",
+      "And after some work with a coloured pencil I succeeded in making my first drawing.",
+      "My Drawing Number One.",
+      "It looked like this: I showed my masterpiece to the grown-ups,",
+      "and asked them whether the drawing frightened them.",
+      "But they answered: \u201cFrighten?",
+      "Why should any one be frightened by a hat?\u201d",
+      "My drawing was not a picture of a hat."
+    ],
+    "translations": [
+      "\u6211\u516d\u5c81\u65f6\uff0c\u5728\u4e00\u672c\u4e66\u91cc\u770b\u5230\u4e86\u4e00\u5e45\u58ee\u4e3d\u7684\u753b\uff0c",
+      "\u4e66\u540d\u53eb\u300a\u81ea\u7136\u771f\u5b9e\u6545\u4e8b\u300b\uff0c\u8bb2\u7684\u662f\u539f\u59cb\u68ee\u6797\u3002",
+      "\u753b\u7684\u662f\u4e00\u6761\u87d2\u86c7\u6b63\u5728\u541e\u98df\u4e00\u53ea\u52a8\u7269\u3002",
+      "\u8fd9\u91cc\u662f\u4e00\u5e45\u590d\u5236\u7684\u753b\u3002",
+      "\u4e66\u4e2d\u5199\u9053\uff1a\u201c\u87d2\u86c7\u628a\u730e\u7269\u6574\u4e2a\u541e\u4e0b\uff0c\u4e0d\u5480\u56bc\u201d\u3002",
+      "\u6b64\u540e\u5b83\u4eec\u52a8\u5f39\u4e0d\u5f97\uff0c",
+      "\u5e76\u5728\u6d88\u5316\u6240\u9700\u7684\u516d\u4e2a\u6708\u91cc\u6c89\u7761\u3002",
+      "\u968f\u540e\uff0c\u6211\u5bf9\u4e1b\u6797\u7684\u63a2\u9669\u6df1\u601d\u826f\u4e45\u3002",
+      "\u6211\u7528\u5f69\u8272\u94c5\u7b14\u4e00\u756a\u7ed8\u5236\uff0c\u6210\u529f\u5730\u5b8c\u6210\u4e86\u6211\u7684\u7b2c\u4e00\u5e45\u753b\u3002",
+      "\u6211\u7684\u7b2c\u4e00\u53f7\u753b\u3002",
+      "\u5b83\u770b\u8d77\u6765\u662f\u8fd9\u6837\u7684\uff1a\u6211\u628a\u6770\u4f5c\u5c55\u793a\u7ed9\u5927\u4eba\u4eec\uff0c",
+      "\u5e76\u95ee\u4ed6\u4eec\u8fd9\u5e45\u753b\u662f\u5426\u8ba9\u4ed6\u4eec\u5bb3\u6015\u3002",
+      "\u53ef\u4ed6\u4eec\u56de\u7b54\u8bf4\uff1a\u201c\u5bb3\u6015\uff1f",
+      "\u4e3a\u4ec0\u4e48\u4f1a\u6709\u4eba\u56e0\u4e3a\u4e00\u9876\u5e3d\u5b50\u800c\u5bb3\u6015\uff1f\u201d",
+      "\u6211\u7684\u753b\u5e76\u4e0d\u662f\u4e00\u9876\u5e3d\u5b50\u7684\u56fe\u753b\u3002"
+    ]
+  }
+];

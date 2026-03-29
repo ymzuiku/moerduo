@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"strings"
@@ -20,17 +19,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	result, err := lf.TextToSpeech(context.Background(), lf.TextToSpeechRequest{
+	audio, err := lf.TextToSpeech(context.Background(), lf.TextToSpeechRequest{
 		Text: text,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
-		os.Exit(1)
-	}
-
-	audio, err := hex.DecodeString(result.AudioHex)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "decode hex error:", err)
 		os.Exit(1)
 	}
 
