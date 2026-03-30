@@ -363,16 +363,28 @@
       return;
     }
 
-    var adapterName = provider === "apple" ? "appleSignIn" : "googleSignIn";
-
-    AppShell.callNative(adapterName, {}).then(function (result) {
+    // AppShell AuthAdapter: AppShell.callNative("auth", "login", {provider})
+    // Returns: {provider, token, email, fullName: {given, family}} or {error}
+    AppShell.callNative("auth", "login", { provider: provider }).then(function (result) {
+      if (result.error) {
+        if (result.error === "cancelled") return;
+        throw new Error(result.error);
+      }
+      var idToken = result.token;
+      var name = "";
+      if (result.fullName) {
+        name = [result.fullName.given, result.fullName.family].filter(Boolean).join(" ");
+      }
+      if (!name && result.email) name = result.email.split("@")[0];
       return apiJSON("POST", "/api/login", {
         provider: provider,
-        id_token: result.id_token,
-        name: result.name || "",
+        id_token: idToken,
+        name: name,
       });
-    }).then(handleLoginResponse).catch(function (e) {
-      if (e && e.message && e.message.indexOf("cancel") >= 0) return; // user cancelled
+    }).then(function (data) {
+      if (data) handleLoginResponse(data);
+    }).catch(function (e) {
+      if (!e || (e.message && e.message.indexOf("cancel") >= 0)) return;
       alert("登录失败: " + (e.message || e));
     });
   }
