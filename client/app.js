@@ -2,7 +2,7 @@
   "use strict";
 
   var app = document.getElementById("app");
-  var API = location.origin;
+  var API = (typeof appshell_api_base !== "undefined" && appshell_api_base) || localStorage.getItem("appshell_api_base") || location.origin;
 
   var state = {
     view: "login",      // login | list | player | my-books | edit-book | public-books
@@ -21,6 +21,8 @@
     phraseTranslations: [],
     wordPopup: null,    // { word, translation, x, y }
     editBook: null,     // book being created/edited
+    currentPhraseIndex: 0,
+    phrases: [],
   };
 
   // ---- Storage ----
@@ -166,6 +168,74 @@
     window.speechSynthesis.cancel();
   }
 
+  function setupPhraseSync(audio, phrases) {
+    if (!audio || phrases.length <= 1) return;
+    var wordCounts = phrases.map(function (p) { return p.split(/\s+/).filter(Boolean).length; });
+    var totalWords = wordCounts.reduce(function (a, b) { return a + b; }, 0);
+    if (totalWords === 0) return;
+    var startFractions = [];
+    var cum = 0;
+    for (var i = 0; i < phrases.length; i++) {
+      startFractions.push(cum);
+      cum += wordCounts[i] / totalWords;
+    }
+    var lastIdx = 0;
+    audio.addEventListener('timeupdate', function () {
+      var dur = audio.duration;
+      if (!dur || isNaN(dur) || dur === 0) return;
+      var progress = audio.currentTime / dur;
+      var idx = 0;
+      for (var i = phrases.length - 1; i >= 0; i--) {
+        if (progress >= startFractions[i]) { idx = i; break; }
+      }
+      if (idx !== lastIdx) {
+        lastIdx = idx;
+        state.currentPhraseIndex = idx;
+        updateKaraokeDisplay();
+      }
+    });
+  }
+
+  function buildPhraseWordHtml(phraseText) {
+    var html = '';
+    var words = (phraseText || '').split(/\s+/).filter(Boolean);
+    for (var w = 0; w < words.length; w++) {
+      var clean = words[w].replace(/[^a-zA-Z'-]/g, "").toLowerCase();
+      var isAnnotated = clean.length > 1 && !SKIP_WORDS.has(clean);
+      html += '<span class="word-clickable' + (isAnnotated ? ' word-has-anno' : '') + '" data-word="' +
+        escapeHtml(words[w]) + '" data-ctx="' + escapeHtml(phraseText) + '">' +
+        escapeHtml(words[w]) + '</span> ';
+    }
+    return html;
+  }
+
+  function updateKaraokeDisplay() {
+    var phrases = state.phrases;
+    if (!phrases || phrases.length === 0) return;
+    var idx = Math.min(state.currentPhraseIndex, phrases.length - 1);
+    var prevEl = document.getElementById('karaoke-prev');
+    var currEnEl = document.getElementById('karaoke-current-en');
+    var currZhEl = document.getElementById('karaoke-current-zh');
+    var nextEl = document.getElementById('karaoke-next');
+    if (!currEnEl) return;
+    if (prevEl) prevEl.textContent = idx > 0 ? phrases[idx - 1] : '';
+    currEnEl.innerHTML = state.showText ? buildPhraseWordHtml(phrases[idx]) : '';
+    var wordEls = currEnEl.querySelectorAll('.word-clickable');
+    for (var i = 0; i < wordEls.length; i++) {
+      wordEls[i].addEventListener('click', function () {
+        var word = this.getAttribute('data-word');
+        var ctx = this.getAttribute('data-ctx');
+        var rect = this.getBoundingClientRect();
+        onWordClick(word, ctx, rect.left + rect.width / 2, rect.top);
+      });
+    }
+    currEnEl.classList.remove('karaoke-animate');
+    void currEnEl.offsetWidth;
+    currEnEl.classList.add('karaoke-animate');
+    if (currZhEl) currZhEl.textContent = state.showTranslation ? (state.phraseTranslations[idx] || '') : '';
+    if (nextEl) nextEl.textContent = idx < phrases.length - 1 ? phrases[idx + 1] : '';
+  }
+
   function playCurrentSentence() {
     if (!state.currentBook || !state.playing) return;
     var paragraphs = state.currentBook.paragraphs;
@@ -174,8 +244,11 @@
       render();
       return;
     }
+    var paragraph = paragraphs[state.sentenceIndex];
+    state.phrases = splitPhrases(paragraph);
+    state.currentPhraseIndex = 0;
     render();
-    playSentence(state.currentBook.id, state.sentenceIndex, paragraphs[state.sentenceIndex], function () {
+    playSentence(state.currentBook.id, state.sentenceIndex, paragraph, function () {
       if (!state.playing) return;
       setTimeout(function () {
         if (!state.playing) return;
@@ -184,6 +257,7 @@
         loadPhraseTranslations().then(playCurrentSentence);
       }, 1000);
     });
+    if (state.currentAudio) setupPhraseSync(state.currentAudio, state.phrases);
   }
 
   function replayCurrentSentence() {
@@ -192,12 +266,15 @@
     var text = paragraphs[state.sentenceIndex] || "";
     stopAudio();
     var wasPlaying = state.playing;
+    state.currentPhraseIndex = 0;
+    updateKaraokeDisplay();
     playSentence(state.currentBook.id, state.sentenceIndex, text, function () {
       if (wasPlaying) {
         state.playing = true;
         playCurrentSentence();
       }
     });
+    if (state.currentAudio) setupPhraseSync(state.currentAudio, state.phrases);
   }
 
   // ---- Word click: pronounce + translate ----
@@ -358,14 +435,12 @@
   }
 
   function doLogin(provider) {
-    if (typeof AppShell === "undefined" || !AppShell.callNative) {
-      alert("请在 App 内登录");
+    if (typeof AppShell === "undefined" || !AppShell.auth) {
+      showToast("请在 App 内登录");
       return;
     }
 
-    // AppShell AuthAdapter: AppShell.callNative("auth", "login", {provider})
-    // Returns: {provider, token, email, fullName: {given, family}} or {error}
-    AppShell.callNative("auth", "login", { provider: provider }).then(function (result) {
+    AppShell.auth.login(provider).then(function (result) {
       if (result.error) {
         if (result.error === "cancelled") return;
         throw new Error(result.error);
@@ -385,7 +460,7 @@
       if (data) handleLoginResponse(data);
     }).catch(function (e) {
       if (!e || (e.message && e.message.indexOf("cancel") >= 0)) return;
-      alert("登录失败: " + (e.message || e));
+      showToast("登录失败: " + (e.message || e));
     });
   }
 
@@ -644,6 +719,12 @@
     var paragraph = paragraphs[idx] || "";
     var total = paragraphs.length;
 
+    if (!state.phrases || state.phrases.length === 0) {
+      state.phrases = splitPhrases(paragraph);
+    }
+    var phrases = state.phrases;
+    var pi = Math.min(state.currentPhraseIndex, phrases.length - 1);
+
     var html = '<div class="view">';
 
     // Header
@@ -654,48 +735,32 @@
     html += '<button class="text-toggle-btn' + (state.showTranslation ? " active" : "") + '" id="trans-toggle">译</button>';
     html += '</div>';
 
-    // Body
-    html += '<div class="player-body">';
-    html += '<div class="sentence-counter">' + (idx + 1) + ' / ' + total + '</div>';
+    // Karaoke Stage
+    html += '<div class="karaoke-stage">';
 
-    // Phrases with inline translations
-    var phrases = splitPhrases(paragraph);
-    html += '<div class="phrases-container">';
-    for (var p = 0; p < phrases.length; p++) {
-      html += '<div class="phrase-block">';
+    var prevText = pi > 0 ? phrases[pi - 1] : '';
+    html += '<div class="karaoke-prev" id="karaoke-prev">' + escapeHtml(prevText) + '</div>';
 
-      // English phrase with clickable words
-      if (state.showText) {
-        html += '<div class="phrase-text">';
-        var words = phrases[p].split(/\s+/);
-        for (var w = 0; w < words.length; w++) {
-          var clean = words[w].replace(/[^a-zA-Z'-]/g, "").toLowerCase();
-          var isAnnotated = clean.length > 1 && !SKIP_WORDS.has(clean);
-          html += '<span class="word-clickable' + (isAnnotated ? " word-has-anno" : "") + '" data-word="' +
-            escapeHtml(words[w]) + '" data-ctx="' + escapeHtml(phrases[p]) + '">' +
-            escapeHtml(words[w]) + '</span> ';
-        }
-        html += '</div>';
-      }
-
-      // Phrase translation (from AI)
-      if (state.showTranslation && state.phraseTranslations[p]) {
-        html += '<div class="phrase-translation">' + escapeHtml(state.phraseTranslations[p]) + '</div>';
-      }
-
+    html += '<div class="karaoke-current">';
+    if (state.showText) {
+      html += '<div class="karaoke-english karaoke-animate" id="karaoke-current-en">';
+      html += buildPhraseWordHtml(phrases[pi] || '');
       html += '</div>';
+    } else {
+      html += '<div class="karaoke-english" id="karaoke-current-en"></div>';
     }
+    var curTrans = state.showTranslation ? (state.phraseTranslations[pi] || '') : '';
+    html += '<div class="karaoke-translation" id="karaoke-current-zh">' + escapeHtml(curTrans) + '</div>';
     html += '</div>';
 
-    // Playing indicator
-    if (state.playing) {
-      html += '<div class="playing-indicator"><span class="pulse-dot"></span> 正在播放</div>';
-    }
+    var nextText = pi < phrases.length - 1 ? phrases[pi + 1] : '';
+    html += '<div class="karaoke-next" id="karaoke-next">' + escapeHtml(nextText) + '</div>';
 
     html += '</div>';
 
     // Controls
     html += '<div class="controls">';
+    html += '<div class="sentence-counter">' + (idx + 1) + ' / ' + total + '</div>';
     html += '<div class="progress-bar-container"><div class="progress-bar">';
     html += '<div class="progress-bar-fill" style="width:' + ((idx / Math.max(total - 1, 1)) * 100) + '%"></div>';
     html += '</div></div>';
@@ -755,6 +820,8 @@
         stopAudio();
         state.playing = false;
         state.sentenceIndex--;
+        state.currentPhraseIndex = 0;
+        state.phrases = [];
         saveProgress(book.id, state.sentenceIndex);
         loadPhraseTranslations().then(render);
       }
@@ -765,6 +832,8 @@
         stopAudio();
         state.playing = false;
         state.sentenceIndex++;
+        state.currentPhraseIndex = 0;
+        state.phrases = [];
         saveProgress(book.id, state.sentenceIndex);
         loadPhraseTranslations().then(render);
       }

@@ -27,7 +27,7 @@ struct ListeningFirstApp: App {
                 adapters: [
                     AuthAdapter(providers: [.apple, .google]),
                 ],
-                devMode: false
+                devMode: true
             ))
         }
     }
