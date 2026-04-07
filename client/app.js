@@ -5,7 +5,7 @@
   var API = (typeof appshell_api_base !== "undefined" && appshell_api_base) || localStorage.getItem("appshell_api_base") || location.origin;
 
   var state = {
-    view: "login",      // login | list | player | my-books | edit-book | public-books
+    view: "hello-world", // hello-world | login | list | player | my-books | edit-book | public-books
     listTab: "library", // library | my-books | public
     token: null,
     user: null,
@@ -387,10 +387,25 @@
   // ---- Render ----
 
   function render() {
-    if (state.view === "login") renderLogin();
+    if (state.view === "hello-world") renderHelloWorld();
+    else if (state.view === "login") renderLogin();
     else if (state.view === "list") renderBookList();
     else if (state.view === "edit-book") renderEditBook();
     else renderPlayer();
+  }
+
+  function renderHelloWorld() {
+    app.innerHTML =
+      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:24px;padding:24px;text-align:center;">' +
+      '<div style="font-size:48px;">👂</div>' +
+      '<h1 style="font-size:28px;font-weight:700;margin:0;">先搞定听力</h1>' +
+      '<p style="color:#888;margin:0;">Hello World!</p>' +
+      '<button id="hw-start" style="margin-top:16px;padding:14px 32px;background:#4f46e5;color:#fff;border:none;border-radius:12px;font-size:16px;cursor:pointer;">开始使用</button>' +
+      '</div>';
+    document.getElementById("hw-start").addEventListener("click", function () {
+      state.view = "login";
+      render();
+    });
   }
 
   function renderUserBar(showBack) {

@@ -15,6 +15,9 @@ settings:
 packages:
   AppShell:
     path: ../../app-shell/ios
+  mlx-swift-lm:
+    url: https://github.com/ml-explore/mlx-swift-lm
+    branch: main
 
 targets:
   ListeningFirst:
@@ -28,6 +31,10 @@ targets:
       - path: ListeningFirst/Resources
     dependencies:
       - package: AppShell
+      - product: MLXLLM
+        package: mlx-swift-lm
+      - product: MLXLMCommon
+        package: mlx-swift-lm
     settings:
       base:
         DEVELOPMENT_TEAM: QUKNH2D57C

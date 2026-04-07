@@ -21,14 +21,24 @@ struct ListeningFirstApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AppShellView(config: .init(
-                serverURL: serverURL(),
-                bundledZip: Bundle.main.url(forResource: "client", withExtension: "zip"),
-                adapters: [
-                    AuthAdapter(providers: [.apple, .google]),
-                ],
-                devMode: true
-            ))
+            TabView {
+                AppShellView(config: .init(
+                    serverURL: serverURL(),
+                    bundledZip: Bundle.main.url(forResource: "client", withExtension: "zip"),
+                    adapters: [
+                        AuthAdapter(providers: [.apple, .google]),
+                    ],
+                    devMode: true
+                ))
+                .tabItem {
+                    Label("听力", systemImage: "headphones")
+                }
+
+                GemmaChatView()
+                    .tabItem {
+                        Label("Gemma", systemImage: "brain")
+                    }
+            }
         }
     }
 
