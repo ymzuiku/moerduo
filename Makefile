@@ -20,6 +20,7 @@ ios: zip
 		-sdk iphoneos \
 		-derivedDataPath $(IOS_DIR)/build \
 		-allowProvisioningUpdates \
+		-skipMacroValidation \
 		-quiet
 	xcrun devicectl device install app --device 00008120-001259313420C01E $(APP_PATH)
 	xcrun devicectl device process launch --device 00008120-001259313420C01E $(BUNDLE_ID)

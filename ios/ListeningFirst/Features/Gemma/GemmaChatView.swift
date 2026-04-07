@@ -1,6 +1,10 @@
 import SwiftUI
 import MLXLLM
 import MLXLMCommon
+import MLXHuggingFace
+import Hub
+import Tokenizers
+import HuggingFace
 
 private struct ChatMessage: Identifiable {
     let id = UUID()
@@ -183,18 +187,18 @@ struct GemmaChatView: View {
         isLoading = true
         errorMessage = ""
         loadProgress = "准备下载..."
-        let hfID = selectedModel.hfID
+        let config = ModelConfiguration(id: selectedModel.hfID)
         Task {
             do {
-                let config = ModelConfiguration(id: hfID)
-                let container = try await LLMModelFactory.shared.loadContainer(
-                    configuration: config
-                ) { progress in
-                    Task { @MainActor in
-                        let pct = Int(progress.fractionCompleted * 100)
-                        loadProgress = "下载中... \(pct)%"
+                let container = try await #huggingFaceLoadModelContainer(
+                    configuration: config,
+                    progressHandler: { progress in
+                        Task { @MainActor in
+                            let pct = Int(progress.fractionCompleted * 100)
+                            loadProgress = "下载中... \(pct)%"
+                        }
                     }
-                }
+                )
                 await MainActor.run {
                     modelContainer = container
                     isLoading = false
@@ -210,7 +214,8 @@ struct GemmaChatView: View {
     }
 
     private func sendMessage() {
-        guard let container = modelContainer, !inputText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        guard let container = modelContainer,
+              !inputText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         let text = inputText
         inputText = ""
         messages.append(ChatMessage(role: "user", content: text))
@@ -225,16 +230,18 @@ struct GemmaChatView: View {
                     let input = try await context.processor.prepare(
                         input: .init(messages: history)
                     )
+                    var params = GenerateParameters()
+                    params.maxTokens = 512
+
+                    let stream = try generate(
+                        input: input, parameters: params, context: context)
+
                     var output = ""
-                    let _ = try generate(
-                        input: input,
-                        parameters: GenerateParameters(temperature: 0.7, maxTokens: 512),
-                        context: context
-                    ) { tokens in
-                        let chunk = context.tokenizer.decode(tokens: Array(tokens))
-                        output += chunk
-                        Task { @MainActor in self.streamingText = output }
-                        return .more
+                    for await generation in stream {
+                        if case .chunk(let chunk) = generation {
+                            output += chunk
+                            Task { @MainActor in self.streamingText = output }
+                        }
                     }
                     return output
                 }
@@ -245,7 +252,9 @@ struct GemmaChatView: View {
                 }
             } catch {
                 await MainActor.run {
-                    messages.append(ChatMessage(role: "assistant", content: "错误: \(error.localizedDescription)"))
+                    messages.append(ChatMessage(
+                        role: "assistant",
+                        content: "错误: \(error.localizedDescription)"))
                     streamingText = ""
                     isGenerating = false
                 }

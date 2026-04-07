@@ -24,7 +24,6 @@ struct ListeningFirstApp: App {
             TabView {
                 AppShellView(config: .init(
                     serverURL: serverURL(),
-                    bundledZip: Bundle.main.url(forResource: "client", withExtension: "zip"),
                     adapters: [
                         AuthAdapter(providers: [.apple, .google]),
                     ],

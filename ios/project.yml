@@ -18,6 +18,12 @@ packages:
   mlx-swift-lm:
     url: https://github.com/ml-explore/mlx-swift-lm
     branch: main
+  swift-transformers:
+    url: https://github.com/huggingface/swift-transformers
+    branch: main
+  swift-huggingface:
+    url: https://github.com/huggingface/swift-huggingface
+    from: 0.8.1
 
 targets:
   ListeningFirst:
@@ -35,6 +41,14 @@ targets:
         package: mlx-swift-lm
       - product: MLXLMCommon
         package: mlx-swift-lm
+      - product: MLXHuggingFace
+        package: mlx-swift-lm
+      - product: Tokenizers
+        package: swift-transformers
+      - product: Hub
+        package: swift-transformers
+      - product: HuggingFace
+        package: swift-huggingface
     settings:
       base:
         DEVELOPMENT_TEAM: QUKNH2D57C
